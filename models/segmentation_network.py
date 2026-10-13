@@ -14,11 +14,14 @@ class DownBlock(nn.Module):
 
         self.conv_1 = nn.Conv2d(input_channels, out_channels * lastDownFactor, kernel_size=3, padding=1, stride=1)
         self.relu_1 = nn.ReLU()
+        # ajouté pour stabiliser l'apprentissage (pas présent dans le schéma de base de U-Net car le Papier de BatchNorm est sorti presque en même temps que le papier de U-Net)
+        self.bn1 = nn.BatchNorm2d(out_channels * lastDownFactor)
         self.conv_2 = nn.Conv2d(out_channels * lastDownFactor, out_channels, kernel_size=3, padding=1, stride=1)
         self.relu_2 = nn.ReLU()
+        self.bn2 = nn.BatchNorm2d(out_channels)
 
     def forward(self, x):
-        return self.relu_2(self.conv_2(self.relu_1(self.conv_1(self.maxpool(x)))))
+        return self.bn2(self.relu_2(self.conv_2(self.bn1(self.relu_1(self.conv_1(self.maxpool(x)))))))
 
 class UpBlock(nn.Module):
     def __init__(self, channels, lastUp = False):
@@ -27,13 +30,15 @@ class UpBlock(nn.Module):
         self.upsample = nn.ConvTranspose2d(channels, channels, kernel_size=2, padding=0, stride=2)
         self.conv_1 = nn.Conv2d(channels*2, channels, kernel_size=3, padding=1, stride=1)
         self.relu_1 = nn.ReLU()
+        self.bn1 = nn.BatchNorm2d(channels)
         self.conv_2 = nn.Conv2d(channels, channels if lastUp else channels//2, kernel_size=3, padding=1, stride=1)
         self.relu_2 = nn.ReLU()
+        self.bn2 = nn.BatchNorm2d(channels if lastUp else channels//2)
 
     def forward(self, x, skip):
         ct = self.upsample(x, output_size=skip.shape[2:]) # la taille impaire des images brise le concat de base (53x53)
         cat = torch.cat((ct, skip), dim=1)
-        return self.relu_2(self.conv_2(self.relu_1(self.conv_1(cat))))
+        return self.bn2(self.relu_2(self.conv_2(self.bn1(self.relu_1(self.conv_1(cat))))))
 
 class SegmentationNetwork(nn.Module):
     def __init__(self, input_channels, n_classes, hidden = 16):
