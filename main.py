@@ -12,6 +12,7 @@ from metrics import AccuracyMetric, MeanAveragePrecisionMetric, SegmentationInte
 from visualizer import Visualizer
 from models.classification_network import ClassificationNetwork
 from models.segmentation_network import SegmentationNetwork
+from models.detection_network import DetectionNetwork
 
 TRAIN_VALIDATION_SPLIT = 0.9
 CLASS_PROBABILITY_THRESHOLD = 0.5
@@ -50,8 +51,7 @@ class ConveyorCnnTrainer():
         if task == 'classification':
             return ClassificationNetwork(self.input_channels, self.n_classes - 1) # on inclus pas la classe background ici
         elif task == 'detection':
-            # À compléter
-            raise NotImplementedError()
+            return DetectionNetwork(self.input_channels, self.n_classes - 1)
         elif task == 'segmentation':
             return SegmentationNetwork(self.input_channels, self.n_classes) # on veut aussi prédire le background
         else:
@@ -330,7 +330,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     conv = ConveyorCnnTrainer(args)
-
+    
     if args.mode == 'train':
         print('\n--- Training mode ---\n')
         conv.train()
